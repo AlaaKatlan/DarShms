@@ -10,114 +10,101 @@ import { CurrencyFormatPipe } from '../../../shared/pipes/currency-format.pipe';
 import { LoaderComponent } from '../../../shared/components/loader/loader.component';
 
 @Component({
-  selector: 'app-book-detail',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, CurrencyFormatPipe, LoaderComponent],
-  template: `
+    selector: 'app-book-detail',
+    standalone: true,
+    imports: [CommonModule, RouterModule, FormsModule, CurrencyFormatPipe, LoaderComponent],
+    template: `
     <app-loader [show]="loading"></app-loader>
-    
     <div class="container" *ngIf="book">
       <div class="breadcrumb">
-        <a routerLink="/books">الكتب</a> / <span>{{ book.title }}</span>
+        <a routerLink="/">الكتب</a> / <span>{{ book.title }}</span>
       </div>
-      
       <div class="book-detail-wrapper">
         <div class="book-image">
-          <img [src]="book.cover_image || 'assets/images/author-placeholder.svg'" [alt]="book.title">
+          <img [src]="book.cover_url || 'assets/images/book-placeholder.svg'" [alt]="book.title">
         </div>
-        
         <div class="book-info">
-          <div class="badge" *ngIf="book.category">{{ book.category }}</div>
+          <div class="badge" *ngIf="book.age_group">{{ book.age_group }} سنوات</div>
           <h1>{{ book.title }}</h1>
           <p class="author" *ngIf="book.author">تأليف: {{ book.author.name }}</p>
-          
           <div class="price-section">
-            <span class="price">{{ book.price | currencyFormat }}</span>
+            <div>
+              <span class="price">{{ (book.discount_price || book.price) | currencyFormat }}</span>
+              <span class="old-price" *ngIf="book.discount_price">{{ book.price | currencyFormat }}</span>
+            </div>
             <span class="stock-status" [class.in-stock]="book.stock > 0" [class.out-of-stock]="book.stock === 0">
               {{ book.stock > 0 ? 'متوفر (' + book.stock + ')' : 'نفذت الكمية' }}
             </span>
           </div>
-          
-          <div class="description">
+          <div class="description" *ngIf="book.description">
             <h3>نبذة عن الكتاب</h3>
-            <p>{{ book.description || 'لا يوجد وصف متاح.' }}</p>
+            <p>{{ book.description }}</p>
           </div>
-          
           <div class="actions">
             <div class="quantity-control" *ngIf="book.stock > 0">
-              <button (click)="decreaseQuantity()">-</button>
-              <input type="number" [(ngModel)]="quantity" min="1" [max]="book.stock" readonly>
-              <button (click)="increaseQuantity()">+</button>
+              <button (click)="decreaseQty()">-</button>
+              <input type="number" [(ngModel)]="qty" min="1" [max]="book.stock" readonly>
+              <button (click)="increaseQty()">+</button>
             </div>
-            
-            <button class="btn-primary add-to-cart-btn" (click)="addToCart()" [disabled]="book.stock === 0">
+            <button class="btn btn-gold add-to-cart-btn" (click)="addToCart()" [disabled]="book.stock === 0">
               إضافة إلى السلة
             </button>
           </div>
         </div>
       </div>
     </div>
+    <div class="container" *ngIf="!book && !loading" style="text-align:center; padding:80px 20px;">
+      <h2>الكتاب غير موجود</h2>
+      <a routerLink="/" class="btn btn-gold" style="margin-top:20px;">العودة للرئيسية</a>
+    </div>
   `,
-  styleUrls: ['./book-detail.component.scss']
+    styleUrls: ['./book-detail.component.scss']
 })
 export class BookDetailComponent implements OnInit {
-  book: Book | null = null;
-  loading = true;
-  quantity = 1;
+    book: Book | null = null;
+    loading = true;
+    qty = 1;
 
-  constructor(
-    private route: ActivatedRoute,
-    private supabase: SupabaseService,
-    private cartService: CartService,
-    private alertService: AlertService
-  ) { }
+    constructor(
+        private route: ActivatedRoute,
+        private supabase: SupabaseService,
+        private cartService: CartService,
+        private alertService: AlertService
+    ) {}
 
-  ngOnInit() {
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('id');
-      if (id) {
-        this.loadBook(id);
-      }
-    });
-  }
-
-  async loadBook(id: string) {
-    this.loading = true;
-    try {
-      const { data, error } = await this.supabase.client
-        .from('books')
-        .select('*, author:authors(id, name, biography)')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-
-      this.book = data as unknown as Book;
-    } catch (error) {
-      console.error('Error loading book details', error);
-      this.alertService.show('error', 'تعذر تحميل تفاصيل الكتاب');
-    } finally {
-      this.loading = false;
+    ngOnInit() {
+        this.route.paramMap.subscribe(params => {
+            const id = params.get('id');
+            if (id) this.loadBook(id);
+        });
     }
-  }
 
-  increaseQuantity() {
-    if (this.book && this.quantity < this.book.stock) {
-      this.quantity++;
+    async loadBook(id: string) {
+        this.loading = true;
+        try {
+            const { data, error } = await this.supabase.getBookById(id);
+            if (error) {
+                console.error('Book detail error:', error);
+                this.alertService.show('error', 'تعذر تحميل تفاصيل الكتاب');
+                return;
+            }
+            this.book = data as Book;
+            console.log('Book loaded:', this.book);
+        } catch (err) {
+            console.error('Book detail catch:', err);
+        } finally {
+            this.loading = false;
+        }
     }
-  }
 
-  decreaseQuantity() {
-    if (this.quantity > 1) {
-      this.quantity--;
-    }
-  }
+    increaseQty() { if (this.book && this.qty < this.book.stock) this.qty++; }
+    decreaseQty() { if (this.qty > 1) this.qty--; }
 
-  addToCart() {
-    if (this.book) {
-      this.cartService.addToCart(this.book, this.quantity);
-      this.alertService.show('success', `تم إضافة ${this.quantity} من "${this.book.title}" إلى السلة`);
-      this.quantity = 1; // reset after adding
+    addToCart() {
+        if (this.book) {
+            this.cartService.addToCart(this.book, this.qty);
+            this.alertService.show('success', `تم إضافة "${this.book.title}" إلى السلة`);
+            this.qty = 1;
+        }
     }
-  }
 }

@@ -2,11 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
-// Import Layout
-import { AdminLayoutComponent } from './features/admin/layout/admin-layout.component';
-
 export const routes: Routes = [
-    // Storefront Phase 3
+    // Storefront
     {
         path: '',
         loadComponent: () => import('./features/storefront/books-list/books-list.component').then(m => m.BooksListComponent)
@@ -29,7 +26,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/storefront/checkout/checkout.component').then(m => m.CheckoutComponent)
     },
 
-    // Auth Phase 4
+    // Auth
     {
         path: 'login',
         loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
@@ -39,13 +36,13 @@ export const routes: Routes = [
         loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
     },
 
-    // Admin Phase 5
+    // Admin - also lazy load the layout
     {
         path: 'admin',
-        component: AdminLayoutComponent,
         canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/layout/admin-layout.component').then(m => m.AdminLayoutComponent),
         children: [
-            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' as const },
             { path: 'dashboard', loadComponent: () => import('./features/admin/dashboard/dashboard.component').then(m => m.DashboardComponent) },
             { path: 'books', loadComponent: () => import('./features/admin/books/books-management.component').then(m => m.BooksManagementComponent) },
             { path: 'authors', loadComponent: () => import('./features/admin/authors/authors-management.component').then(m => m.AuthorsManagementComponent) },

@@ -1,66 +1,66 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { CartItem, Book } from '../../shared/models';
+import { CartItem } from '../../shared/models/cart.model';
+import { Book } from '../../shared/models/book.model';
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class CartService {
     private cartItemsSubject = new BehaviorSubject<CartItem[]>([]);
     public cartItems$ = this.cartItemsSubject.asObservable();
 
-    constructor() {
-        this.loadCart();
-    }
+    constructor() { this.loadCart(); }
 
     private loadCart() {
-        const savedCart = localStorage.getItem('cart');
-        if (savedCart) {
-            this.cartItemsSubject.next(JSON.parse(savedCart));
-        }
+        try {
+            const saved = localStorage.getItem('darshams_cart');
+            if (saved) this.cartItemsSubject.next(JSON.parse(saved));
+        } catch { this.cartItemsSubject.next([]); }
     }
 
     private saveCart(items: CartItem[]) {
-        localStorage.setItem('cart', JSON.stringify(items));
+        localStorage.setItem('darshams_cart', JSON.stringify(items));
         this.cartItemsSubject.next(items);
     }
 
-    get items(): CartItem[] {
-        return this.cartItemsSubject.value;
+    get items(): CartItem[] { return this.cartItemsSubject.value; }
+
+    /** Get effective price (discount or regular) */
+    getEffectivePrice(book: Book): number {
+        return book.discount_price ?? book.price;
     }
 
-    addToCart(book: Book, quantity: number = 1) {
-        const currentItems = [...this.items];
-        const existingItem = currentItems.find(item => item.book.id === book.id);
-
-        if (existingItem) {
-            existingItem.quantity += quantity;
+    addToCart(book: Book, quantity = 1) {
+        const current = [...this.items];
+        const existing = current.find(i => i.book.id === book.id);
+        if (existing) {
+            existing.quantity = Math.min(existing.quantity + quantity, book.stock);
         } else {
-            currentItems.push({ book, quantity });
+            current.push({ book, quantity: Math.min(quantity, book.stock) });
         }
-
-        this.saveCart(currentItems);
+        this.saveCart(current);
     }
 
     removeFromCart(bookId: string) {
-        const currentItems = this.items.filter(item => item.book.id !== bookId);
-        this.saveCart(currentItems);
+        this.saveCart(this.items.filter(i => i.book.id !== bookId));
     }
 
     updateQuantity(bookId: string, quantity: number) {
-        const currentItems = [...this.items];
-        const item = currentItems.find(i => i.book.id === bookId);
+        if (quantity <= 0) { this.removeFromCart(bookId); return; }
+        const current = [...this.items];
+        const item = current.find(i => i.book.id === bookId);
         if (item) {
-            item.quantity = quantity;
-            this.saveCart(currentItems);
+            item.quantity = Math.min(quantity, item.book.stock);
+            this.saveCart(current);
         }
     }
 
-    clearCart() {
-        this.saveCart([]);
+    clearCart() { this.saveCart([]); }
+
+    get totalItems(): number {
+        return this.items.reduce((sum, i) => sum + i.quantity, 0);
     }
 
     get total(): number {
-        return this.items.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
+        return this.items.reduce((sum, i) => sum + this.getEffectivePrice(i.book) * i.quantity, 0);
     }
 }
