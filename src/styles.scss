@@ -17,7 +17,7 @@
   --purple: #9B51E0;
   --purple-light: #F3EAFC;
   --bg: #FAFAF8;
-  --bg-warm: #FFFDF7;
+  --bg-warm: #fdfaf5; /* تم توحيد اللون الدافئ */
   --white: #FFFFFF;
   --dark: #1A1A1A;
   --text: #2D2D2D;
@@ -31,47 +31,71 @@
   --font: 'Cairo', sans-serif;
   --font-display: 'Baloo Bhaijaan 2', 'Cairo', sans-serif;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Fallback legacy vars */
   --primary-color: #F5C518;
+  --dark-color: #1a1c23;
   --error-color: #e74c3c;
   --success-color: #2DBDAD;
 }
 
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* ═══════════ RESET & BASE ═══════════ */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  /* الحل الجذري للومضة البيضاء: تثبيت الخلفية على كل المستويات */
+  background-color: var(--bg-warm) !important;
+}
+
 body {
   font-family: var(--font);
-  background: var(--bg);
   color: var(--text);
   line-height: 1.75;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  position: relative;
 }
+
+/* يضمن أن الحاوية الأساسية للأنيميشن لا تنهار */
+app-root {
+  display: block;
+  min-height: 100vh;
+  background-color: var(--bg-warm);
+}
+
 a { text-decoration: none; color: inherit; }
 img { max-width: 100%; display: block; }
-button { cursor: pointer; border: none; font-family: inherit; }
+button { cursor: pointer; border: none; font-family: inherit; outline: none; }
 ul { list-style: none; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
 /* ═══════════ ANIMATIONS ═══════════ */
 @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
-@keyframes float-r { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(12px) rotate(-3deg)} }
 @keyframes fade-up { from{opacity:0;transform:translateY(32px)} to{opacity:1;transform:translateY(0)} }
-@keyframes slide-right { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
-@keyframes pulse-glow { 0%,100%{box-shadow:0 0 0 0 rgba(245,197,24,0.3)} 50%{box-shadow:0 0 0 20px rgba(245,197,24,0)} }
 @keyframes grain {
   0%,100%{transform:translate(0,0)}
   10%{transform:translate(-5%,-10%)}
-  30%{transform:translate(3%,-15%)}
   50%{transform:translate(-8%,5%)}
-  70%{transform:translate(8%,2%)}
   90%{transform:translate(-3%,8%)}
 }
 
-.anim { opacity:0; transform:translateY(30px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
-.anim.visible { opacity:1; transform:translateY(0); }
+/* كلاس الأنيميشن الخاص بالعناصر داخل الصفحات */
+.anim {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+  will-change: opacity, transform;
+}
+.anim.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* ═══════════ GRAIN TEXTURE ═══════════ */
 body::before {
@@ -84,35 +108,52 @@ body::before {
   pointer-events: none;
   z-index: 9999;
   animation: grain 8s steps(10) infinite;
+  opacity: 0.4;
 }
 
 /* ═══════════ BUTTONS GLOBAL ═══════════ */
 .btn {
   display:inline-flex; align-items:center; gap:8px; font-weight:700;
-  padding:11px 26px; border-radius:12px; font-size:0.92rem; transition:all 0.3s var(--ease);
+  padding:11px 26px; border-radius:12px; font-size:0.92rem;
+  transition:all 0.3s var(--ease);
+  cursor: pointer;
 }
 .btn-gold {
-  background:var(--gold); color:var(--text);
+  background:var(--gold); color:var(--dark);
   box-shadow:0 4px 16px rgba(245,197,24,0.3);
+  &:hover { background:var(--gold-hover); transform:translateY(-2px); box-shadow:0 8px 28px rgba(245,197,24,0.35); }
 }
-.btn-gold:hover { background:var(--gold-hover); transform:translateY(-2px); box-shadow:0 8px 28px rgba(245,197,24,0.35); }
-.btn-teal {
-  background:var(--teal); color:#fff;
-  box-shadow:0 4px 16px rgba(45,189,173,0.25);
-}
-.btn-teal:hover { background:var(--teal-dark); transform:translateY(-2px); }
-.btn-outline { border:2px solid var(--text); color:var(--text); background:transparent; }
-.btn-outline:hover { background:var(--text); color:#fff; }
-.btn-ghost { background:rgba(0,0,0,0.04); color:var(--text); }
-.btn-ghost:hover { background:rgba(0,0,0,0.08); }
-
-/* Global overrides for common elements */
-input, textarea, select {
-  font-family: var(--font);
+.btn-outline {
+  border:2px solid var(--text); color:var(--text); background:transparent;
+  &:hover { background:var(--text); color:#fff; }
 }
 
-.admin-page {
-  padding: 30px;
-  background: var(--bg);
-  min-height: 100vh;
+/* ═══════════ LOADING BAR ═══════════ */
+.page-loader-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(to left, var(--gold), var(--amber));
+  z-index: 10001;
+  transform: translateX(100%);
+  animation: loadingBar 2s infinite;
+}
+
+@keyframes loadingBar {
+  0% { transform: translateX(100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ═══════════ ROUTE ANIMATION FIXES ═══════════ */
+/* منع تداخل العناصر والشفافية عند استخدام Absolute في الأنيميشن */
+.admin-wrapper, .hero, section, .app-layout {
+  background-color: transparent !important;
+}
+
+/* ضمان ظهور المحتوى فوق الـ Grain */
+main {
+  position: relative;
+  z-index: 1;
+  width: 100%;
 }

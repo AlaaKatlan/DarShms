@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { BookCardComponent } from '../../../shared/components/book-card/book-card.component';
@@ -14,11 +14,16 @@ import { AlertService } from '../../../core/services/alert.service';
     templateUrl: './books-list.component.html',
     styleUrls: ['./books-list.component.scss']
 })
-export class BooksListComponent implements OnInit, AfterViewInit {
+export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
     books: Book[] = [];
     authors: Author[] = [];
     loading = true;
     loadingAuthors = true;
+
+    // المراقب المسؤول عن الأنيميشن أثناء التمرير
+    private observer: IntersectionObserver | null = null;
+    // المراقب المسؤول عن اكتشاف وصول الكتب والكتاب من قاعدة البيانات
+    private mutationObserver: MutationObserver | null = null;
 
     constructor(
         private supabase: SupabaseService,
@@ -27,36 +32,64 @@ export class BooksListComponent implements OnInit, AfterViewInit {
     ) {}
 
     ngOnInit() {
-        // Run debug test first
         this.supabase.testConnection();
-
         this.loadBooks();
         this.loadAuthors();
     }
 
     ngAfterViewInit() {
-        setTimeout(() => {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const delay = (entry.target as HTMLElement).dataset['delay'] || '0';
-                        setTimeout(() => entry.target.classList.add('visible'), Number(delay));
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        this.setupIntersectionObserver();
+        this.setupMutationObserver();
+        this.observeNewElements();
+    }
 
-            document.querySelectorAll('.anim').forEach((el, idx) => {
-                (el as HTMLElement).dataset['delay'] = (idx * 60).toString();
-                observer.observe(el);
+    ngOnDestroy() {
+        // تنظيف المراقبين عند مغادرة الصفحة لتجنب تسريب الذاكرة
+        if (this.observer) this.observer.disconnect();
+        if (this.mutationObserver) this.mutationObserver.disconnect();
+    }
+
+    // 1. إعداد الـ Intersection Observer
+    private setupIntersectionObserver() {
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = entry.target as HTMLElement;
+                    const delay = target.dataset['delay'] || '0';
+                    setTimeout(() => target.classList.add('visible'), Number(delay));
+                    this.observer?.unobserve(target);
+                }
             });
-        }, 200);
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    }
+
+    // 2. إعداد الـ Mutation Observer (الحل الجذري لمشكلة اختفاء الكتب)
+    private setupMutationObserver() {
+        this.mutationObserver = new MutationObserver(() => {
+            // كلما تغير شيء في الصفحة (مثل ظهور الكتب الجديدة)، استدعِ هذه الدالة
+            this.observeNewElements();
+        });
+
+        this.mutationObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // 3. البحث عن العناصر الجديدة وإضافتها للأنيميشن
+    private observeNewElements() {
+        document.querySelectorAll('.anim:not(.visible)').forEach((el, idx) => {
+            const element = el as HTMLElement;
+            if (!element.dataset['delay']) {
+                element.dataset['delay'] = (idx * 50).toString(); // تأخير 50ms بين كل كتاب ليظهروا بشكل متتالي
+            }
+            this.observer?.observe(element);
+        });
     }
 
     async loadBooks() {
         this.loading = true;
         try {
-            // Use the helper method
             const { data, error } = await this.supabase.getBooks({
                 limit: 8,
                 activeOnly: true
