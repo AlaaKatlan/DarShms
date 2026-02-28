@@ -6,7 +6,7 @@ export const routes: Routes = [
     // Storefront
     {
         path: '',
-        loadComponent: () => import('./features/storefront/books-list/books-list.component').then(m => m.BooksListComponent)
+        loadComponent: () => import('./features/storefront/books-list/books-list.component').then (m => m.BooksListComponent)
     },
     {
         path: 'books',
@@ -36,7 +36,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
     },
 
-    // Admin - also lazy load the layout
+    // Admin
     {
         path: 'admin',
         canActivate: [adminGuard],
@@ -47,6 +47,7 @@ export const routes: Routes = [
             { path: 'books', loadComponent: () => import('./features/admin/books/books-management.component').then(m => m.BooksManagementComponent) },
             { path: 'authors', loadComponent: () => import('./features/admin/authors/authors-management.component').then(m => m.AuthorsManagementComponent) },
             { path: 'orders', loadComponent: () => import('./features/admin/orders/orders-management.component').then(m => m.OrdersManagementComponent) },
+            { path: 'gallery', loadComponent: () => import('./features/admin/gallery/gallery-management.component').then(m => m.GalleryManagementComponent) },
             { path: 'customers', loadComponent: () => import('./features/admin/customers/customers-list.component').then(m => m.CustomersListComponent) },
             { path: 'reports', loadComponent: () => import('./features/admin/reports/reports-dashboard.component').then(m => m.ReportsDashboardComponent) },
             { path: 'settings', loadComponent: () => import('./features/admin/settings/settings.component').then(m => m.SettingsComponent) }

@@ -5,7 +5,7 @@ import { Pipe, PipeTransform } from '@angular/core';
     standalone: true
 })
 export class CurrencyFormatPipe implements PipeTransform {
-    transform(value: number | string, currencyCode: string = 'ر.س'): string {
+    transform(value: number | string, currencyCode: string = 'AED'): string {
         const num = typeof value === 'string' ? parseFloat(value) : value;
         if (isNaN(num)) return value.toString();
 
