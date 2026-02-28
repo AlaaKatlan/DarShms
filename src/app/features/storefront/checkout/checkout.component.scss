@@ -1,0 +1,97 @@
+.checkout-page {
+  padding: 40px 15px;
+  h1 { margin-bottom: 30px; }
+}
+
+.checkout-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  
+  @media (min-width: 992px) {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.checkout-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.section {
+  background: var(--paper-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 30px;
+  
+  h2 { font-size: 20px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+}
+
+.form-group {
+  margin-bottom: 20px;
+  
+  label {
+    display: block; margin-bottom: 8px; font-weight: 500; color: var(--dark-color);
+  }
+  
+  input, select, textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 16px;
+    
+    &:focus { border-color: var(--primary-color); outline: none; }
+  }
+}
+
+.payment-methods {
+  .payment-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 15px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;
+    
+    input { width: auto; }
+    span { font-weight: 500; }
+  }
+}
+
+.order-summary {
+  flex: 0 0 380px;
+  background: var(--paper-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 30px;
+  position: sticky;
+  top: 20px;
+  
+  h2 { font-size: 20px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+}
+
+.summary-items {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.summary-item {
+  display: flex; justify-content: space-between; margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.summary-row {
+  display: flex; justify-content: space-between; margin-bottom: 15px; color: var(--text-secondary);
+  
+  &.total-row {
+    margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee;
+    color: var(--dark-color); font-weight: 700; font-size: 20px;
+  }
+}
+
+.checkout-btn {
+  width: 100%; margin-top: 25px; padding: 15px; font-size: 18px;
+  &:disabled { background: #ccc; cursor: not-allowed; }
+}
