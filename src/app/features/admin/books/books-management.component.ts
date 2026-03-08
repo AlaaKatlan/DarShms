@@ -127,7 +127,7 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
 
             <div class="form-row">
               <div class="form-group">
-                <label>السعر (ر.س) *</label>
+                <label>السعر AED *</label>
                 <input type="number" [(ngModel)]="form.price" min="0" step="0.5">
               </div>
               <div class="form-group">

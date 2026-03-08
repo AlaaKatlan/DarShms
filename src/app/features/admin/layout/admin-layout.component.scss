@@ -9,7 +9,7 @@
 /* ═══════════ SIDEBAR ═══════════ */
 .sidebar {
   width: 260px;
-  background-color: #1a1c23; /* لون كحلي داكن احترافي بدلاً من الأسود المباشر */
+  background-color: #1a1c23;
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -18,7 +18,13 @@
   top: 0;
   bottom: 0;
   z-index: 100;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.05); /* ظل خفيف للعمق */
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  animation: sidebarEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sidebarEnter {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
 
 .sidebar-header {
@@ -52,49 +58,81 @@
 
 .sidebar-nav {
   flex: 1;
-  padding: 24px 16px; /* بادينغ جانبي لإعطاء مساحة للزر من الأطراف */
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px; /* مسافة بين عناصر القائمة */
-  overflow-y: auto; /* في حال كثرت العناصر مستقبلاً */
+  gap: 6px;
+  overflow-y: auto;
 
-  /* تجميل شريط التمرير داخل القائمة الجانبية */
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
   a {
     padding: 14px 16px;
-    color: rgba(255, 255, 255, 0.65); /* لون غير ساطع لتجنب إجهاد العين */
+    color: rgba(255, 255, 255, 0.65);
     display: flex;
     align-items: center;
     gap: 14px;
-    border-radius: 12px; /* حواف دائرية حديثة بدلاً من المربعة */
+    border-radius: 12px;
     text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 1.05rem; /* تكبير الخط ليكون واضحاً ومقروءاً */
+    transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+    font-size: 1.05rem;
     font-weight: 600;
+    position: relative;
+    overflow: hidden;
+
+    /* ripple background على الـ hover */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.04);
+      border-radius: inherit;
+      opacity: 0;
+      transform: scaleX(0.85);
+      transform-origin: right;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
 
     svg {
       width: 20px;
       height: 20px;
-      stroke-width: 2.2; /* زيادة سماكة الأيقونة لتكون أوضح */
-      transition: transform 0.3s ease;
+      stroke-width: 2.2;
+      transition: transform 0.25s ease, stroke 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    span {
+      transition: transform 0.25s ease;
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
       color: #ffffff;
+      transform: translateX(-2px);
 
-      svg { transform: translateX(-4px); } /* تأثير حركي خفيف للأيقونة نحو اليمين لأن التطبيق RTL */
+      &::before { opacity: 1; transform: scaleX(1); }
+      svg { transform: translateX(-3px); }
     }
 
     &.active {
-      background: linear-gradient(90deg, rgba(245,197,24,0.15) 0%, rgba(245,197,24,0) 100%);
+      background: linear-gradient(90deg, rgba(245,197,24,0.18) 0%, rgba(245,197,24,0.04) 100%);
       color: var(--gold, #F5C518);
-      border-right: 4px solid var(--gold, #F5C518);
-      border-radius: 12px 4px 4px 12px; /* تسطيح الحافة اليمنى بسبب الخط الملون */
+      border-right: 3px solid var(--gold, #F5C518);
+      border-radius: 12px 4px 4px 12px;
+      transform: translateX(0);
 
       svg { stroke: var(--gold, #F5C518); }
+
+      /* shimmer خفيف على الـ active */
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0; right: 0;
+        width: 3px;
+        background: var(--gold);
+        border-radius: 0 2px 2px 0;
+        box-shadow: 0 0 10px rgba(245,197,24,0.5);
+      }
     }
   }
 }
@@ -201,5 +239,22 @@
 .content-body {
   padding: 32px;
   flex: 1;
-  overflow-x: hidden; /* لمنع التمرير الأفقي غير المرغوب فيه */
+  overflow-x: hidden;
+
+  /* كل صفحة تظهر بـ fade + slide ناعم */
+  router-outlet + * {
+    display: block;
+    animation: pageEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

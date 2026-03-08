@@ -22,7 +22,9 @@
 
         <div class="nav-actions">
           <button routerLink="/cart" class="cart-btn" aria-label="السلة">
-            🛒<span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+
+            <img alt="السلة" src="assets/images/carts.png" alt="">
+            <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
           </button>
 
           <ng-container *ngIf="authService.currentUser$ | async as user; else loginLinks">

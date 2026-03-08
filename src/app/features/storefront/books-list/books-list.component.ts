@@ -1,6 +1,6 @@
-import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router'; // إضافة ActivatedRoute
 import { BookCardComponent } from '../../../shared/components/book-card/book-card.component';
 import { Book, Author } from '../../../shared/models/book.model';
 import { SupabaseService } from '../../../core/services/supabase.service';
@@ -20,36 +20,94 @@ export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
     loading = true;
     loadingAuthors = true;
 
-    // المراقب المسؤول عن الأنيميشن أثناء التمرير
+    showAllBooks = false;
+
+    // Carousel
+    @ViewChild('carouselTrack') carouselTrackRef!: ElementRef<HTMLElement>;
+    activeCarouselIndex = 0;
+
+    readonly CAROUSEL_GROUP_SIZE = 5;
+
+    get carouselGroupCount(): number {
+        return Math.ceil(this.authors.length / this.CAROUSEL_GROUP_SIZE);
+    }
+
+    get activeGroupIndex(): number {
+        return Math.floor(this.activeCarouselIndex / this.CAROUSEL_GROUP_SIZE);
+    }
+
+    get carouselGroupsArray(): number[] {
+        return Array.from({ length: this.carouselGroupCount });
+    }
+
     private observer: IntersectionObserver | null = null;
-    // المراقب المسؤول عن اكتشاف وصول الكتب والكتاب من قاعدة البيانات
     private mutationObserver: MutationObserver | null = null;
+    private carouselInterval: any = null;
 
     constructor(
         private supabase: SupabaseService,
         private cartService: CartService,
-        private alertService: AlertService
+        private alertService: AlertService,
+        private route: ActivatedRoute // حقن ActivatedRoute
     ) {}
 
     ngOnInit() {
-        this.supabase.testConnection();
-        this.loadBooks();
-        this.loadAuthors();
+        // مراقبة الـ query params لمعرفة إذا تم الضغط على "تصفح جميع إصداراتنا"
+        this.route.queryParams.subscribe(params => {
+            this.showAllBooks = params['all'] === 'true';
+
+            // إعادة تحميل الكتب بناءً على الحالة الجديدة
+            this.loadBooks();
+
+            // إذا كنا نعرض كل الكتب، لا داعي لتحميل المؤلفين (اختياري)
+            if (!this.showAllBooks) {
+                this.loadAuthors();
+            }
+
+            // التمرير لأعلى الصفحة عند التبديل
+            if (this.showAllBooks) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
     }
 
     ngAfterViewInit() {
         this.setupIntersectionObserver();
         this.setupMutationObserver();
         this.observeNewElements();
+        // نبدأ الـ auto-scroll بعد تحميل البيانات
+        setTimeout(() => this.startCarouselAutoPlay(), 800);
     }
 
     ngOnDestroy() {
-        // تنظيف المراقبين عند مغادرة الصفحة لتجنب تسريب الذاكرة
         if (this.observer) this.observer.disconnect();
         if (this.mutationObserver) this.mutationObserver.disconnect();
+        if (this.carouselInterval) clearInterval(this.carouselInterval);
     }
 
-    // 1. إعداد الـ Intersection Observer
+    startCarouselAutoPlay() {
+        if (this.carouselInterval) clearInterval(this.carouselInterval);
+        this.carouselInterval = setInterval(() => {
+            const track = this.carouselTrackRef?.nativeElement;
+            if (!track) return;
+            const cardWidth = track.querySelector('.writer-card')?.clientWidth || 240;
+            const gap = 24;
+            const maxScroll = track.scrollWidth - track.clientWidth;
+
+            if (track.scrollLeft <= 0) {
+                track.scrollTo({ left: maxScroll, behavior: 'smooth' });
+                this.activeCarouselIndex = this.authors.length - 1;
+            } else {
+                track.scrollBy({ left: -(cardWidth + gap), behavior: 'smooth' });
+                setTimeout(() => {
+                    const scrolled = maxScroll - track.scrollLeft;
+                    const idx = Math.round(scrolled / (cardWidth + gap));
+                    this.activeCarouselIndex = Math.max(0, Math.min(idx, this.authors.length - 1));
+                }, 350);
+            }
+        }, 1800);
+    }
+
     private setupIntersectionObserver() {
         this.observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -63,10 +121,8 @@ export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
         }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     }
 
-    // 2. إعداد الـ Mutation Observer (الحل الجذري لمشكلة اختفاء الكتب)
     private setupMutationObserver() {
         this.mutationObserver = new MutationObserver(() => {
-            // كلما تغير شيء في الصفحة (مثل ظهور الكتب الجديدة)، استدعِ هذه الدالة
             this.observeNewElements();
         });
 
@@ -76,12 +132,15 @@ export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
         });
     }
 
-    // 3. البحث عن العناصر الجديدة وإضافتها للأنيميشن
     private observeNewElements() {
-        document.querySelectorAll('.anim:not(.visible)').forEach((el, idx) => {
+        // كل group من siblings يأخذ delay متدرج
+        document.querySelectorAll('.anim:not(.visible)').forEach((el) => {
             const element = el as HTMLElement;
             if (!element.dataset['delay']) {
-                element.dataset['delay'] = (idx * 50).toString(); // تأخير 50ms بين كل كتاب ليظهروا بشكل متتالي
+                // احسب الـ index داخل الـ parent
+                const siblings = Array.from(element.parentElement?.querySelectorAll('.anim') || []);
+                const idx = siblings.indexOf(element);
+                element.dataset['delay'] = (idx * 80).toString();
             }
             this.observer?.observe(element);
         });
@@ -90,10 +149,13 @@ export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
     async loadBooks() {
         this.loading = true;
         try {
-            const { data, error } = await this.supabase.getBooks({
-                limit: 8,
+            // تجهيز الإعدادات، إذا كان showAllBooks صحيح، نرسل undefined كـ limit لجلب الكل
+            const options = {
+                limit: this.showAllBooks ? undefined : 8,
                 activeOnly: true
-            });
+            };
+
+            const { data, error } = await this.supabase.getBooks(options);
 
             if (error) {
                 console.error('loadBooks ERROR:', error);
@@ -101,10 +163,7 @@ export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
                 return;
             }
 
-            console.log('loadBooks SUCCESS - raw data:', data);
             this.books = data as Book[];
-            console.log('Books loaded:', this.books.length, this.books);
-
         } catch (error: any) {
             console.error('loadBooks CATCH:', error);
             this.alertService.show('error', 'حدث خطأ أثناء تحميل الكتب');
@@ -117,23 +176,29 @@ export class BooksListComponent implements OnInit, AfterViewInit, OnDestroy {
         this.loadingAuthors = true;
         try {
             const { data, error } = await this.supabase.getAuthors({
-                limit: 6,
                 activeOnly: true
             });
 
-            if (error) {
-                console.error('loadAuthors ERROR:', error);
-                return;
-            }
-
-            console.log('loadAuthors SUCCESS:', data);
+            if (error) return;
             this.authors = data as Author[];
-
         } catch (error) {
             console.error('loadAuthors CATCH:', error);
         } finally {
             this.loadingAuthors = false;
         }
+    }
+
+    scrollCarousel(direction: number) {
+        const track = this.carouselTrackRef?.nativeElement;
+        if (!track) return;
+        const cardWidth = track.querySelector('.writer-card')?.clientWidth || 280;
+        const gap = 24;
+        const scrollAmount = (cardWidth + gap) * direction;
+        track.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+
+        // إيقاف مؤقت عند التدخل اليدوي، ثم استئناف بعد 6 ثواني
+        if (this.carouselInterval) clearInterval(this.carouselInterval);
+        setTimeout(() => this.startCarouselAutoPlay(), 3000);
     }
 
     addToCart(book: Book) {

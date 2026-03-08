@@ -11,86 +11,157 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
     imports: [CommonModule, FormsModule, LoaderComponent],
     template: `
     <app-loader [show]="loading"></app-loader>
-    <div class="admin-page">
+    <div class="authors-page">
 
-      <div class="page-header-row">
-        <div>
-          <h1>إدارة المؤلفين</h1>
-          <p class="page-sub">إضافة وتعديل بيانات المؤلفين وصورهم</p>
+      <!-- HEADER -->
+      <div class="authors-header">
+        <div class="header-text">
+          <div class="header-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+          </div>
+          <div>
+            <h1>كُتّابنا المبدعون</h1>
+            <p>{{ authors.length }} كاتب وكاتبة يثرون عالم الأدب</p>
+          </div>
         </div>
-        <button class="btn btn-gold" (click)="openForm()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-          إضافة مؤلف
+        <button class="add-btn" (click)="openForm()">
+          <span class="add-icon">+</span>
+          إضافة كاتب
         </button>
+      </div>
+
+      <!-- STATS ROW -->
+      <div class="stats-row">
+        <div class="mini-stat">
+          <div class="mini-stat-icon gold">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div><strong>{{ authors.length }}</strong><span>مؤلف</span></div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-icon teal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg>
+          </div>
+          <div><strong>{{ totalBooks }}</strong><span>كتاب</span></div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-icon purple">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div><strong>{{ activeCount }}</strong><span>نشط</span></div>
+        </div>
       </div>
 
       <!-- AUTHORS GRID -->
       <div class="authors-grid">
-        <div class="author-card" *ngFor="let author of authors">
-          <div class="author-photo">
-            <img [src]="author.photo_url || 'assets/images/author-placeholder.svg'" [alt]="author.name">
+        <div class="author-card" *ngFor="let author of authors; let i = index"
+             [style.animation-delay]="(i * 60) + 'ms'">
+          <!-- Decorative blob -->
+          <div class="card-blob" [class]="'blob-' + (i % 4)"></div>
+
+          <!-- Photo -->
+          <div class="author-avatar" [class]="'ring-' + (i % 4)">
+            <img [src]="author.photo_url || 'assets/images/author-placeholder.svg'" [alt]="author.name" loading="lazy">
+            <div class="avatar-status" [class.active]="author.is_active"></div>
           </div>
-          <div class="author-info">
-            <h3>{{ author.name }}</h3>
-            <p class="author-bio">{{ author.bio || 'لا توجد نبذة' }}</p>
-            <div class="author-meta">
-              <span class="books-count" *ngIf="author.books_count !== undefined">{{ author.books_count }} كتاب</span>
-              <span class="date-added">{{ author.created_at | date:'dd/MM/yyyy' }}</span>
-            </div>
+
+          <!-- Info -->
+          <h3 class="author-name">{{ author.name }}</h3>
+          <p class="author-bio">{{ author.bio || 'كاتب/ة في دار شمس' }}</p>
+
+          <!-- Books count badge -->
+          <div class="books-badge" *ngIf="author.books_count > 0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            {{ author.books_count }} كتاب
           </div>
-          <div class="author-actions">
-            <button class="btn-sm btn-edit" (click)="openForm(author)" title="تعديل">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <button class="action-btn edit" (click)="openForm(author); $event.stopPropagation()" title="تعديل">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
             </button>
-            <button class="btn-sm btn-delete" (click)="deleteAuthor(author)" title="حذف">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            <button class="action-btn delete" (click)="deleteAuthor(author); $event.stopPropagation()" title="حذف">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
+
+          <!-- Date -->
+          <div class="card-date">{{ author.created_at | date:'MMM yyyy' }}</div>
         </div>
-        <div class="empty-card" *ngIf="authors.length === 0 && !loading">لا يوجد مؤلفون</div>
+
+        <!-- Empty state -->
+        <div class="empty-state" *ngIf="authors.length === 0 && !loading">
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>لا يوجد مؤلفون بعد</h3>
+          <p>ابدأ بإضافة أول كاتب</p>
+          <button class="add-btn small" (click)="openForm()">
+            <span class="add-icon">+</span> إضافة كاتب
+          </button>
+        </div>
       </div>
 
-      <!-- MODAL -->
-      <div class="modal-overlay" *ngIf="showForm" (click)="closeForm()">
-        <div class="modal-box" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h2>{{ editing ? 'تعديل المؤلف' : 'إضافة مؤلف جديد' }}</h2>
-            <button class="modal-close" (click)="closeForm()">&times;</button>
-          </div>
-          <div class="modal-body">
+      <!-- ═══ MODAL ═══ -->
+      <div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+          <!-- Modal header with color accent -->
+          <div class="modal-top">
+            <div class="modal-top-deco"></div>
+            <button class="close-btn" (click)="closeForm()">&times;</button>
+
             <!-- Photo upload -->
-            <div class="photo-upload" (click)="photoInput.click()">
-              <img *ngIf="photoPreview || form.photo_url" [src]="photoPreview || form.photo_url" alt="صورة">
-              <div class="photo-placeholder" *ngIf="!photoPreview && !form.photo_url">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span>رفع صورة</span>
+            <div class="photo-ring" (click)="photoInput.click()">
+              <img *ngIf="photoPreview || form.photo_url" [src]="photoPreview || form.photo_url" alt="">
+              <div class="photo-empty" *ngIf="!photoPreview && !form.photo_url">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              </div>
+              <div class="photo-hover">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
               </div>
             </div>
             <input #photoInput type="file" accept="image/*" (change)="onPhotoSelected($event)" style="display:none">
+            <h2>{{ editing ? 'تعديل ' + form.name : 'كاتب جديد' }}</h2>
+          </div>
 
-            <div class="form-row">
-              <div class="form-group flex-1">
-                <label>اسم المؤلف *</label>
-                <input type="text" [(ngModel)]="form.name" placeholder="أدخل اسم المؤلف">
+          <div class="modal-form">
+            <div class="field-row">
+              <div class="field">
+                <label>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  اسم المؤلف *
+                </label>
+                <input type="text" [(ngModel)]="form.name" placeholder="أدخل اسم المؤلف" class="input-styled">
               </div>
-              <div class="form-group" style="width:200px">
-                <label>الرابط (slug)</label>
-                <input type="text" [(ngModel)]="form.slug" placeholder="author-slug" dir="ltr">
+              <div class="field" style="max-width:180px">
+                <label>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Slug
+                </label>
+                <input type="text" [(ngModel)]="form.slug" placeholder="author-slug" dir="ltr" class="input-styled">
               </div>
             </div>
 
-            <div class="form-group">
-              <label>النبذة</label>
-              <textarea [(ngModel)]="form.bio" placeholder="نبذة مختصرة عن المؤلف" rows="4"></textarea>
+            <div class="field">
+              <label>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                النبذة
+              </label>
+              <textarea [(ngModel)]="form.bio" placeholder="نبذة مختصرة عن المؤلف..." rows="4" class="input-styled"></textarea>
             </div>
 
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="form.is_active"> نشط
+            <label class="toggle-row">
+              <div class="toggle-switch" [class.on]="form.is_active" (click)="form.is_active = !form.is_active">
+                <div class="toggle-knob"></div>
+              </div>
+              <span>نشط ومرئي في المتجر</span>
             </label>
           </div>
-          <div class="modal-footer">
-            <button class="btn btn-ghost" (click)="closeForm()">إلغاء</button>
-            <button class="btn btn-gold" (click)="saveAuthor()" [disabled]="saving || !form.name">
+
+          <div class="modal-actions">
+            <button class="btn-cancel" (click)="closeForm()">إلغاء</button>
+            <button class="btn-save" (click)="saveAuthor()" [disabled]="saving || !form.name">
+              <svg *ngIf="!saving" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               {{ saving ? 'جاري الحفظ...' : (editing ? 'حفظ التعديلات' : 'إضافة المؤلف') }}
             </button>
           </div>
@@ -98,7 +169,7 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
       </div>
     </div>
   `,
-    styleUrls: ['../books/books-management.component.scss', './authors-management.component.scss']
+    styleUrls: ['./authors-management.component.scss']
 })
 export class AuthorsManagementComponent implements OnInit {
     authors: any[] = [];
@@ -113,6 +184,14 @@ export class AuthorsManagementComponent implements OnInit {
     constructor(private supabase: SupabaseService, private alert: AlertService) {}
 
     ngOnInit() { this.loadAuthors(); }
+
+    get totalBooks(): number {
+        return this.authors.reduce((sum, a) => sum + (a.books_count || 0), 0);
+    }
+
+    get activeCount(): number {
+        return this.authors.filter(a => a.is_active).length;
+    }
 
     async loadAuthors() {
         this.loading = true;
@@ -157,9 +236,9 @@ export class AuthorsManagementComponent implements OnInit {
             let photoUrl = this.form.photo_url;
             if (this.photoFile) {
                 const ext = this.photoFile.name.split('.').pop();
-                const path = `${Date.now()}.${ext}`;
+                const path = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
                 const { url, error } = await this.supabase.uploadFile('author-photos', path, this.photoFile);
-                if (error) throw new Error('فشل رفع الصورة');
+                if (error) throw new Error('فشل رفع الصورة: ' + (error.message || JSON.stringify(error)));
                 photoUrl = url;
             }
             const slug = this.form.slug || this.form.name.trim().toLowerCase().replace(/[\s]+/g, '-').substring(0, 60);

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8DC"/>
+      <stop offset="100%" stop-color="#FDF0E0"/>
+    </linearGradient>
+    <linearGradient id="blob-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5C518" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#E87F20" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#bg-grad)"/>
+  
+  <!-- Abstract Shapes -->
+  <path d="M100,50 C180,-20 250,50 300,100 C350,150 280,250 200,280 C120,310 50,250 20,180 C-10,110 20,120 100,50 Z" fill="url(#blob-grad)" />
+  <circle cx="320" cy="80" r="40" fill="#2DBDAD" opacity="0.15"/>
+  <circle cx="80" cy="220" r="60" fill="#9B51E0" opacity="0.1"/>
+  
+  <!-- Open Book Stack Illustration -->
+  <g transform="translate(200, 160) scale(1.2)">
+    <!-- Bottom Book -->
+    <path d="M-60,20 L0,40 L60,20 L0,0 Z" fill="#E0F7F4" stroke="#2DBDAD" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M-60,20 L-60,30 L0,50 L0,40 Z" fill="#2DBDAD"/>
+    <path d="M60,20 L60,30 L0,50 L0,40 Z" fill="#1A9A8C"/>
+    
+    <!-- Middle Book -->
+    <path d="M-50,0 L0,20 L50,0 L0,-20 Z" fill="#FDF0E0" stroke="#F2994A" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M-50,0 L-50,10 L0,30 L0,20 Z" fill="#F2994A"/>
+    <path d="M50,0 L50,10 L0,30 L0,20 Z" fill="#E87F20"/>
+    
+    <!-- Top Open Book -->
+    <path d="M-55,-15 Q-20,-30 0,-10 Q20,-30 55,-15 L50,-5 Q20,-20 0,0 Q-20,-20 -50,-5 Z" fill="#FFF" stroke="#F5C518" stroke-width="2"/>
+    <path d="M0,-10 L0,40 M-30,-12 L-10,-4 M-35,-5 L-15,3 M30,-12 L10,-4 M35,-5 L15,3" stroke="#F5C518" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Stars -->
+  <path d="M60 70 L65 85 L80 90 L65 95 L60 110 L55 95 L40 90 L55 85 Z" fill="#F5C518" opacity="0.6"/>
+  <path d="M300 200 L303 208 L311 211 L303 214 L300 222 L297 214 L289 211 L297 208 Z" fill="#F2994A" opacity="0.8"/>
+  <path d="M120 20 L122 28 L130 30 L122 32 L120 40 L118 32 L110 30 L118 28 Z" fill="#2DBDAD" opacity="0.5"/>
+</svg>

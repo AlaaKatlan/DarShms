@@ -205,6 +205,82 @@
 @keyframes spin-slow { to { transform: rotate(360deg); } }
 @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
 
+/* ═══════════ SCROLL ANIMATIONS ═══════════ */
+
+/* Base state - hidden before animation */
+.anim {
+  opacity: 0;
+  transition-property: opacity, transform, filter;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: 0.75s;
+  will-change: opacity, transform;
+}
+
+/* Visible state - triggered by IntersectionObserver */
+.anim.visible {
+  opacity: 1;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* ── Fade up (default for most elements) ── */
+.anim { transform: translateY(36px); }
+
+/* ── Section headers: fade + slight scale ── */
+.sec-head.anim  { transform: translateY(24px) scale(0.97); }
+
+/* ── Cards: fade up with subtle tilt ── */
+.svc-card.anim  { transform: translateY(40px) rotateX(6deg); transform-origin: top center; }
+.feat-card.anim { transform: translateY(40px) rotateX(6deg); transform-origin: top center; }
+
+/* ── About grid: split slide ── */
+.about-grid.anim .about-img  { transform: translateX(50px); opacity: 0; transition: opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1); }
+.about-grid.anim .about-content { transform: translateX(-50px); opacity: 0; transition: opacity 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s, transform 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s; }
+.about-grid.anim.visible .about-img,
+.about-grid.anim.visible .about-content { opacity: 1; transform: none; }
+
+/* ── Carousel wrapper: fade up ── */
+.carousel-wrapper.anim { transform: translateY(50px); }
+
+/* ── Book cards: stagger via delay set in TS ── */
+app-book-card.anim { transform: translateY(44px); }
+
+/* ── Newsletter box: scale up ── */
+.nl-box.anim { transform: translateY(30px) scale(0.97); }
+
+/* ═══════════ ABOUT IMAGE FLOAT ═══════════ */
+.about-img img {
+  animation: aboutFloat 5s ease-in-out infinite;
+}
+
+@keyframes aboutFloat {
+  0%   { transform: translateY(0px) rotate(0deg); }
+  30%  { transform: translateY(-10px) rotate(0.5deg); }
+  60%  { transform: translateY(-6px) rotate(-0.3deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+/* shadow يتنفس مع الصورة */
+.about-img::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 10%;
+  width: 80%;
+  height: 30px;
+  background: radial-gradient(ellipse, rgba(0,0,0,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: aboutShadow 5s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes aboutShadow {
+  0%   { transform: scaleX(1);   opacity: 0.5; }
+  30%  { transform: scaleX(0.82); opacity: 0.25; }
+  60%  { transform: scaleX(0.9);  opacity: 0.35; }
+  100% { transform: scaleX(1);   opacity: 0.5; }
+}
+
 /* ═══════════ SECTION HEADER ═══════════ */
 .sec-head { text-align: center; margin-bottom: 48px; }
 .sec-head h2 { font-family: var(--font-display); font-size: 2.1rem; font-weight: 800; margin-bottom: 10px; }
@@ -249,7 +325,13 @@
 .about-img {
   flex: 1; position: relative;
 
-  img { border-radius: var(--radius-xl); box-shadow: var(--shadow); width: 100%; }
+  img {
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    width: 100%;
+    display: block;
+  }
+
   &::before {
     content: ''; position: absolute; top: -16px; right: -16px;
     width: 100%; height: 100%; border-radius: var(--radius-xl);
@@ -309,144 +391,299 @@
   }
 }
 
-/* ═══════════ WRITERS (Modern Floating Avatar Design) ═══════════ */
+/* ═══════════ WRITERS - CAROUSEL ═══════════ */
 .writers {
-  padding: 100px 0;
-  background: linear-gradient(180deg, var(--bg-warm) 0%, #ffffff 100%);
-}
-
-.writers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 32px;
-  padding-top: 40px;
-}
-
-.writer-card {
-  background: var(--white);
-  border-radius: var(--radius-xl, 24px);
-  padding: 0 20px 32px;
-  text-align: center;
-  border: 1px solid rgba(0, 0, 0, 0.03);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 100px 0 80px;
   position: relative;
-  margin-top: 55px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #fff 0%, var(--bg-warm) 60%, #fff 100%);
+}
+
+.writers-bg-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.writers-deco-circle {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.writers-deco-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(245,197,24,0.07) 0%, transparent 70%);
+  top: -150px; right: -100px;
+}
+
+.writers-deco-2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(45,189,173,0.06) 0%, transparent 70%);
+  bottom: -100px; left: -80px;
+}
+
+.sec-head-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold-light);
+  color: var(--amber-deep);
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+
+  svg { flex-shrink: 0; }
+}
+
+/* ── Carousel Wrapper ── */
+.carousel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.carousel-btn {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid rgba(245,197,24,0.25);
+  color: var(--amber-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  z-index: 10;
+  position: absolute;
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 15px 35px rgba(245, 197, 24, 0.1);
-    border-color: rgba(245, 197, 24, 0.2);
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #fff;
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(245,197,24,0.35);
+  }
+}
 
-    .writer-avatar-wrapper {
-      transform: translateY(-5px);
+.carousel-btn-prev {
+  right: -24px;
+}
+
+.carousel-btn-next {
+  left: -24px;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  padding: 40px 16px 20px;
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  direction: rtl;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* ── Writer Card ── */
+.writer-card {
+  flex: 0 0 240px;
+  scroll-snap-align: start;
+  direction: rtl;
+}
+
+.writer-card-inner {
+  background: var(--white);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  height: 100%;
+
+  &:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 50px rgba(245,197,24,0.14), 0 8px 20px rgba(0,0,0,0.08);
+    border-color: rgba(245,197,24,0.25);
+
+    .writer-img-frame img {
+      transform: scale(1.06);
     }
 
-    .writer-avatar-border img {
-      transform: scale(1.08) rotate(3deg);
-    }
-
-    .avatar-glow {
+    .writer-img-overlay {
       opacity: 1;
-      transform: scale(1.2);
     }
 
-    .avatar-decoration {
-      transform: scale(1) rotate(15deg);
-      opacity: 1;
+    .writer-img-shine {
+      animation: shine-pass 0.7s ease-out forwards;
     }
 
     .writer-name {
       color: var(--amber);
     }
+
+    .writer-divider {
+      width: 60px;
+      background: var(--gold);
+    }
   }
 }
 
-.writer-avatar-wrapper {
-  position: relative;
-  width: 110px;
-  height: 110px;
-  margin: -55px auto 20px;
-  transition: transform 0.4s ease;
-  z-index: 2;
-}
-
-.avatar-glow {
-  position: absolute;
-  inset: -15px;
-  background: radial-gradient(circle, var(--gold-light) 0%, transparent 70%);
-  opacity: 0;
-  transition: all 0.5s ease;
-  z-index: 1;
-  border-radius: 50%;
-}
-
-.writer-avatar-border {
+/* ── Image Frame ── */
+.writer-img-frame {
   position: relative;
   width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  padding: 4px;
-  background: linear-gradient(135deg, var(--gold), var(--amber), var(--teal), var(--gold));
-  background-size: 300% 300%;
-  animation: gradient-flow 6s ease infinite;
-  z-index: 2;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  height: 200px;
+  overflow: hidden;
+  background: linear-gradient(145deg, var(--gold-light), var(--teal-light));
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 50%;
-    border: 4px solid var(--white);
-    background: var(--white);
-    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    object-position: top center;
+    transition: transform 0.5s ease;
+    display: block;
   }
 }
 
-.avatar-decoration {
+.writer-img-shine {
   position: absolute;
-  bottom: 0px;
-  right: -5px;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%);
+  transform: translateX(150%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+@keyframes shine-pass {
+  from { transform: translateX(150%); }
+  to   { transform: translateX(-150%); }
+}
+
+.writer-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(30,20,0,0.45) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 14px;
+
+  svg {
+    color: rgba(255,255,255,0.9);
+  }
+}
+
+/* ── Card Body ── */
+.writer-card-body {
+  padding: 20px 20px 24px;
+  position: relative;
+  text-align: center;
+}
+
+.writer-star-badge {
+  position: absolute;
+  top: -16px;
+  right: 50%;
+  transform: translateX(50%);
   width: 32px;
   height: 32px;
-  background: var(--white);
+  background: linear-gradient(135deg, var(--gold), var(--amber));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  z-index: 3;
-  opacity: 0;
-  transform: scale(0.5) rotate(-45deg);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 12px rgba(245,197,24,0.4);
+  border: 3px solid var(--white);
 
-  svg {
-    width: 16px;
-    height: 16px;
-    color: var(--gold);
+  svg { color: #fff; }
+}
+
+.writer-name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 8px 0 4px;
+  transition: color 0.3s ease;
+}
+
+.writer-role {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.writer-divider {
+  width: 30px;
+  height: 2px;
+  background: var(--gold-light);
+  margin: 12px auto;
+  border-radius: 2px;
+  transition: all 0.4s ease;
+}
+
+.writer-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--amber-deep);
+  background: var(--gold-light);
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+
+/* ── Carousel Dots (display only) ── */
+.carousel-dots-display {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  pointer-events: none;
+}
+
+.carousel-dot-display {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.12);
+  transition: all 0.4s ease;
+  display: block;
+
+  &.active {
+    width: 24px;
+    border-radius: 4px;
+    background: var(--gold);
   }
+}
+
+/* Old avatar styles - kept for compatibility but no longer used */
+.writers-grid,
+.writer-avatar-wrapper,
+.avatar-glow,
+.writer-avatar-border,
+.avatar-decoration {
+  display: none;
 }
 
 @keyframes gradient-flow {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
-}
-
-.writer-name {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text);
-  margin-bottom: 4px;
-  transition: color 0.3s ease;
-}
-
-.writer-role {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 600;
 }
 
 /* ═══════════ NEWSLETTER ═══════════ */
@@ -485,7 +722,8 @@
   .hero-blob { width: 280px; height: 240px; }
   .hero-orbit { width: 340px; height: 340px; }
   .books-grid { grid-template-columns: repeat(3, 1fr); }
-  .writers-grid { grid-template-columns: repeat(4, 1fr); }
+  .writer-card { flex: 0 0 210px; }
+  .writer-img-frame { height: 180px; }
 }
 
 @media(max-width: 768px) {
@@ -517,7 +755,10 @@
   .services-grid { grid-template-columns: repeat(2, 1fr); }
   .feat-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
   .books-grid { grid-template-columns: repeat(2, 1fr); }
-  .writers-grid { grid-template-columns: repeat(3, 1fr); }
+  .writer-card { flex: 0 0 200px; }
+  .carousel-btn { width: 40px; height: 40px; }
+  .carousel-btn-prev { right: -20px; }
+  .carousel-btn-next { left: -20px; }
 
   .nl-box { flex-direction: column; text-align: center; padding: 36px 20px; }
   .nl-form { flex-direction: column; width: 100%; }
@@ -528,6 +769,7 @@
 @media(max-width: 480px) {
   .services-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .books-grid { grid-template-columns: 1fr; gap: 16px; }
-  .writers-grid { grid-template-columns: repeat(2, 1fr); }
+  .writer-card { flex: 0 0 180px; }
+  .writer-img-frame { height: 160px; }
   .hero-stats { gap: 20px; }
 }

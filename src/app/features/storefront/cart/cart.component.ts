@@ -13,17 +13,17 @@ import { FormsModule } from '@angular/forms';
   template: `
     <div class="container cart-page">
       <h1>سلة التسوق</h1>
-      
+
       <div class="cart-content" *ngIf="cartItems.length > 0; else emptyCart">
         <div class="cart-items">
           <div class="cart-item" *ngFor="let item of cartItems">
-            <img [src]="item.book.cover_image || 'assets/images/book-placeholder.svg'" [alt]="item.book.title" class="item-img">
-            
+            <img [src]="item.book.cover_url || 'assets/images/book-placeholder.svg'" [alt]="item.book.title" class="item-img">
+
             <div class="item-details">
               <h3><a [routerLink]="['/books', item.book.id]">{{ item.book.title }}</a></h3>
               <p class="price-single">{{ item.book.price | currencyFormat }}</p>
             </div>
-            
+
             <div class="item-actions">
               <div class="quantity-control">
                 <button (click)="updateQuantity(item, item.quantity - 1)">-</button>
@@ -34,13 +34,13 @@ import { FormsModule } from '@angular/forms';
                 حذف
               </button>
             </div>
-            
+
             <div class="item-total">
               {{ (item.book.price * item.quantity) | currencyFormat }}
             </div>
           </div>
         </div>
-        
+
         <div class="cart-summary">
           <h3>ملخص الطلب</h3>
           <div class="summary-row">
@@ -55,13 +55,13 @@ import { FormsModule } from '@angular/forms';
             <span>الإجمالي:</span>
             <span>{{ (total * 1.15) | currencyFormat }}</span>
           </div>
-          
+
           <button class="btn-primary checkout-btn" (click)="proceedToCheckout()">
             إتمام الطلب
           </button>
         </div>
       </div>
-      
+
       <ng-template #emptyCart>
         <div class="empty-state">
           <div class="icon-empty">🛒</div>
