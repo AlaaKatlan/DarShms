@@ -6,11 +6,14 @@
   <nav class="nav" id="nav" *ngIf="isStorefront" [class.scrolled]="isScrolled">
     <div class="container">
       <div class="nav-inner">
+
+        <!-- LOGO -->
         <a routerLink="/" class="logo">
           <img src="assets/images/logo.png" alt="دار شمس" onerror="this.style.display='none'">
           <span class="logo-name">دار <span>شمس</span></span>
         </a>
 
+        <!-- روابط الديسكتوب -->
         <div class="nav-links">
           <a routerLink="/books" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">الرئيسية</a>
           <a routerLink="/books" fragment="publications">إصداراتنا</a>
@@ -18,33 +21,85 @@
           <a routerLink="/books" fragment="about">من نحن</a>
           <a routerLink="/books" fragment="services">البرامج التدريبية</a>
           <a routerLink="/books" fragment="contact">اتصل بنا</a>
+          <!-- لوحة التحكم — للأدمن فقط -->
+          <ng-container *ngIf="isAdmin$ | async">
+            <a routerLink="/admin" class="nav-admin-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect width="7" height="9" x="3" y="3" rx="1"/>
+                <rect width="7" height="5" x="14" y="3" rx="1"/>
+                <rect width="7" height="9" x="14" y="12" rx="1"/>
+                <rect width="7" height="5" x="3" y="16" rx="1"/>
+              </svg>
+              لوحة التحكم
+            </a>
+          </ng-container>
         </div>
 
+        <!-- أزرار السلة + دخول/خروج -->
         <div class="nav-actions">
           <button routerLink="/cart" class="cart-btn" aria-label="السلة">
-
-            <img alt="السلة" src="assets/images/carts.png" alt="">
+            <img alt="السلة" src="assets/images/carts.png">
             <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
           </button>
 
-          <ng-container *ngIf="authService.currentUser$ | async as user; else loginLinks">
-            <a *ngIf="isAdmin()" routerLink="/admin" class="btn btn-outline"
-              style="padding:9px 20px; font-size:0.85rem;">لوحة التحكم</a>
-            <button (click)="logout()" class="btn btn-ghost" style="padding:9px 20px; font-size:0.85rem;">خروج</button>
+          <ng-container *ngIf="authService.currentUser$ | async; else loginLinks">
+            <button (click)="logout()" class="btn btn-ghost"
+                    style="padding:9px 20px; font-size:0.85rem;">خروج</button>
           </ng-container>
-
           <ng-template #loginLinks>
-            <a routerLink="/register" class="btn btn-outline" style="padding:9px 20px; font-size:0.85rem;">تسجيل</a>
-            <a routerLink="/login" class="btn btn-gold" style="padding:9px 20px; font-size:0.85rem;">دخول</a>
+            <a routerLink="/register" class="btn btn-outline"
+               style="padding:9px 20px; font-size:0.85rem;">تسجيل</a>
+            <a routerLink="/login" class="btn btn-gold"
+               style="padding:9px 20px; font-size:0.85rem;">دخول</a>
           </ng-template>
         </div>
 
-        <button class="mobile-menu" aria-label="القائمة"><span></span><span></span><span></span></button>
+        <!-- زر الهامبرغر -->
+        <button class="mobile-menu" [class.open]="mobileMenuOpen"
+                (click)="toggleMobileMenu()" aria-label="القائمة">
+          <span></span><span></span><span></span>
+        </button>
+
       </div>
     </div>
+
+    <!-- ═══ MOBILE DROPDOWN ═══ -->
+    <div class="mobile-nav" [class.open]="mobileMenuOpen">
+      <a routerLink="/books" (click)="closeMobileMenu()">الرئيسية</a>
+      <a routerLink="/books" fragment="publications" (click)="closeMobileMenu()">إصداراتنا</a>
+      <a routerLink="/books" fragment="writers" (click)="closeMobileMenu()">كُتّابنا</a>
+      <a routerLink="/books" fragment="about" (click)="closeMobileMenu()">من نحن</a>
+      <a routerLink="/books" fragment="services" (click)="closeMobileMenu()">البرامج التدريبية</a>
+      <a routerLink="/books" fragment="contact" (click)="closeMobileMenu()">اتصل بنا</a>
+      <!-- لوحة التحكم — للأدمن فقط -->
+      <ng-container *ngIf="isAdmin$ | async">
+        <a routerLink="/admin" class="nav-admin-link mobile" (click)="closeMobileMenu()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect width="7" height="9" x="3" y="3" rx="1"/>
+            <rect width="7" height="5" x="14" y="3" rx="1"/>
+            <rect width="7" height="9" x="14" y="12" rx="1"/>
+            <rect width="7" height="5" x="3" y="16" rx="1"/>
+          </svg>
+          لوحة التحكم
+        </a>
+      </ng-container>
+
+      <div class="mobile-nav-actions">
+        <ng-container *ngIf="authService.currentUser$ | async; else mobileLoginLinks">
+          <button (click)="logout(); closeMobileMenu()" class="btn btn-ghost">خروج</button>
+        </ng-container>
+        <ng-template #mobileLoginLinks>
+          <a routerLink="/register" class="btn btn-outline" (click)="closeMobileMenu()">تسجيل</a>
+          <a routerLink="/login" class="btn btn-gold" (click)="closeMobileMenu()">دخول</a>
+        </ng-template>
+      </div>
+    </div>
+
   </nav>
 
-  <!-- Main Content Area -->
+  <!-- المحتوى -->
   <main class="main-content">
     <router-outlet></router-outlet>
   </main>
@@ -54,8 +109,9 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <span class="logo-name" style="font-family:var(--font-display);">دار <span
-              style="color:var(--gold);">شمس</span></span>
+          <span class="logo-name" style="font-family:var(--font-display);">
+            دار <span style="color:var(--gold);">شمس</span>
+          </span>
           <p>دار شمس عالم يقدم ما يناسب عقلك. فكرة، كلمة، فن. الشارقة – الإمارات العربية المتحدة.</p>
           <div class="footer-social">
             <a href="#" aria-label="انستغرام">📷</a>
@@ -91,12 +147,10 @@
         </div>
       </div>
       <div class="footer-bottom" dir="rtl">
-        <span>
-          دار شمس. جميع الحقوق محفوظة.
-
-        © 2026 </span>
+        <span>دار شمس. جميع الحقوق محفوظة. © 2026</span>
         <span>فكرة · كلمة · فن</span>
       </div>
     </div>
   </footer>
+
 </div>

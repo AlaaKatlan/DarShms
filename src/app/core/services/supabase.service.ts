@@ -33,7 +33,7 @@ export class SupabaseService {
 
   async getBooks(options?: { limit?: number; activeOnly?: boolean; featuredOnly?: boolean; ageGroup?: string; search?: string; }): Promise<{ data: any[]; error: any }> {
     // 💡 استخدمنا * لجلب كل الأعمدة بما فيها isbn و publication_year
-    let query = this.supabase.from('books').select(`*, author:authors (id, name, slug, photo_url)`).order('created_at', { ascending: false });
+    let query = this.supabase.from('books').select(`*, author:authors (id, name, slug, photo_url)`).order('cover_url', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false });
 
     if (options?.activeOnly !== false) query = query.eq('is_active', true);
     if (options?.featuredOnly) query = query.eq('is_featured', true);
@@ -93,61 +93,54 @@ export class SupabaseService {
     const { data, error } = await this.supabase.from('profiles').select('*').eq('id', userId).single();
     return { data, error };
   }
-
-  // ══════════════════════════════════════════
-  // STORAGE - UPLOAD FILES (Deeper Bypass)
-  // ══════════════════════════════════════════
+  // ==========================================
+  // STORAGE - UPLOAD FILES (With Token Refresh)
+  // ==========================================
 
   async uploadFile(bucket: string, path: string, file: File | Blob): Promise<{ url: string | null; error: any }> {
-    return new Promise((resolve) => {
-      // 1. استخراج التوكن (Token) يدوياً من المتصفح لمنع Supabase من تجميد الجلسة
-      let token = environment.supabaseKey;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.includes('auth-token')) {
-          try {
-            const parsed = JSON.parse(localStorage.getItem(key) || '{}');
-            if (parsed.access_token) {
-              token = parsed.access_token;
-              break;
+    try {
+      // 1. Force session refresh to avoid "exp claim timestamp check failed" (403 Unauthorized)
+      await this.supabase.auth.refreshSession();
+
+      // 2. Get the newly refreshed session
+      const { data: sessionData } = await this.supabase.auth.getSession();
+      const token = sessionData?.session?.access_token || environment.supabaseKey;
+
+      // 3. Perform the direct upload bypassing the locked zone
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        const uploadUrl = `${environment.supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+
+        xhr.open('POST', uploadUrl, true);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.setRequestHeader('apikey', environment.supabaseKey);
+        xhr.setRequestHeader('x-upsert', 'true');
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+        xhr.onload = () => {
+          this.ngZone.run(() => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const { data } = this.supabase.storage.from(bucket).getPublicUrl(path);
+              resolve({ url: data.publicUrl, error: null });
+            } else {
+              console.error("Upload failed with status:", xhr.status, xhr.responseText);
+              resolve({ url: null, error: xhr.responseText });
             }
-          } catch(e) {}
-        }
-      }
+          });
+        };
 
-      // 2. استخدام أداة رفع كلاسيكية ومستقرة لا تتعارض أبداً مع Angular
-      const xhr = new XMLHttpRequest();
-      const uploadUrl = `${environment.supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+        xhr.onerror = () => {
+          this.ngZone.run(() => {
+            console.error("Network Error during upload");
+            resolve({ url: null, error: 'Network error occurred during upload' });
+          });
+        };
 
-      xhr.open('POST', uploadUrl, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.setRequestHeader('apikey', environment.supabaseKey);
-      xhr.setRequestHeader('x-upsert', 'true');
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-
-      // 3. مراقبة انتهاء الرفع وإرجاع النتيجة
-      xhr.onload = () => {
-        this.ngZone.run(() => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            // الحصول على الرابط العام بعد نجاح الرفع
-            const { data } = this.supabase.storage.from(bucket).getPublicUrl(path);
-            resolve({ url: data.publicUrl, error: null });
-          } else {
-            console.error("Upload failed with status:", xhr.status, xhr.responseText);
-            resolve({ url: null, error: xhr.responseText });
-          }
-        });
-      };
-
-      xhr.onerror = () => {
-        this.ngZone.run(() => {
-          console.error("Network Error during upload");
-          resolve({ url: null, error: 'حدث خطأ في الشبكة أثناء الرفع' });
-        });
-      };
-
-      // 4. تنفيذ الرفع!
-      xhr.send(file);
-    });
+        xhr.send(file);
+      });
+    } catch (err) {
+      console.error("Upload exception:", err);
+      return { url: null, error: err };
+    }
   }
 }

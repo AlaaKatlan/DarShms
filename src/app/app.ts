@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from './core/services/auth.service';
 import { CartService } from './core/services/cart.service';
 import { AlertComponent } from './shared/components/alert/alert.component';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,7 @@ export class AppComponent {
   ) { }
 
   isScrolled = false;
+  mobileMenuOpen = false;
 
   @HostListener('window:scroll', [])
   onWindowScroll() {
@@ -32,16 +34,26 @@ export class AppComponent {
     return this.cartService.items.reduce((sum, item) => sum + item.quantity, 0);
   }
 
-  isAdmin() {
-    return this.authService.currentUser?.user_metadata?.['role'] === 'admin';
+  // ✅ يقرأ من profiles table مش user_metadata
+  get isAdmin$() {
+    return this.authService.profile$.pipe(
+      map(profile => profile?.role === 'admin')
+    );
   }
 
   async logout() {
     await this.authService.signOut();
   }
 
-  // Show header/footer only if we are not in admin panel
   get isStorefront() {
     return !this.router.url.startsWith('/admin');
+  }
+
+  toggleMobileMenu() {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu() {
+    this.mobileMenuOpen = false;
   }
 }
