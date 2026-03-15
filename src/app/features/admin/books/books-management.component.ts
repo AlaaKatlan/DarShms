@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../../core/services/supabase.service';
@@ -7,14 +7,13 @@ import { CurrencyFormatPipe } from '../../../shared/pipes/currency-format.pipe';
 import { LoaderComponent } from '../../../shared/components/loader/loader.component';
 
 @Component({
-    selector: 'app-books-management',
-    standalone: true,
-    imports: [CommonModule, FormsModule, CurrencyFormatPipe, LoaderComponent],
-    template: `
+  selector: 'app-books-management',
+  standalone: true,
+  imports: [CommonModule, FormsModule, CurrencyFormatPipe, LoaderComponent],
+  template: `
     <app-loader [show]="loading"></app-loader>
     <div class="admin-page">
 
-      <!-- HEADER -->
       <div class="page-header-row">
         <div>
           <h1>إدارة الكتب</h1>
@@ -26,13 +25,11 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
         </button>
       </div>
 
-      <!-- SEARCH -->
       <div class="search-bar">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="text" placeholder="ابحث عن كتاب..." [(ngModel)]="searchTerm" (input)="filterBooks()">
       </div>
 
-      <!-- TABLE -->
       <div class="table-card">
         <table class="admin-table">
           <thead>
@@ -80,7 +77,6 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
         </table>
       </div>
 
-      <!-- MODAL FORM -->
       <div class="modal-overlay" *ngIf="showForm" (click)="closeForm()">
         <div class="modal-box" (click)="$event.stopPropagation()">
           <div class="modal-header">
@@ -88,7 +84,6 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
             <button class="modal-close" (click)="closeForm()">&times;</button>
           </div>
           <div class="modal-body">
-            <!-- Cover upload -->
             <div class="cover-upload-section">
               <div class="cover-preview" (click)="coverInput.click()">
                 <img *ngIf="coverPreview || form.cover_url" [src]="coverPreview || form.cover_url" alt="غلاف">
@@ -102,13 +97,8 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
                 </div>
               </div>
               <input #coverInput type="file" accept="image/*" (change)="onCoverSelected($event)" style="display:none">
-              <div class="upload-progress" *ngIf="uploading">
-                <div class="progress-bar"><div class="progress-fill"></div></div>
-                <span>جاري رفع الغلاف...</span>
-              </div>
             </div>
 
-            <!-- Fields -->
             <div class="form-row">
               <div class="form-group flex-1">
                 <label>عنوان الكتاب *</label>
@@ -119,7 +109,16 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
                 <input type="text" [(ngModel)]="form.slug" placeholder="book-slug" dir="ltr">
               </div>
             </div>
-
+<div class="form-row">
+              <div class="form-group flex-1">
+                <label>ISBN (الرقم المعياري الدولي)</label>
+                <input type="text" [(ngModel)]="form.isbn" placeholder="مثال: 978-3-16-148410-0" dir="ltr">
+              </div>
+              <div class="form-group" style="width:150px">
+                <label>سنة النشر</label>
+                <input type="number" [(ngModel)]="form.publication_year" placeholder="مثال: 2024" min="1900" max="2099">
+              </div>
+            </div>
             <div class="form-group">
               <label>الوصف</label>
               <textarea [(ngModel)]="form.description" placeholder="وصف مختصر للكتاب" rows="3"></textarea>
@@ -127,7 +126,7 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
 
             <div class="form-row">
               <div class="form-group">
-                <label>السعر AED *</label>
+                <label>السعر (ر.س) *</label>
                 <input type="number" [(ngModel)]="form.price" min="0" step="0.5">
               </div>
               <div class="form-group">
@@ -170,7 +169,6 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
               </label>
             </div>
 
-            <!-- Book PDF upload -->
             <div class="form-group">
               <label>ملف الكتاب (PDF) - اختياري</label>
               <div class="file-upload-row">
@@ -193,200 +191,234 @@ import { LoaderComponent } from '../../../shared/components/loader/loader.compon
       </div>
     </div>
   `,
-    styleUrls: ['./books-management.component.scss']
+  styleUrls: ['./books-management.component.scss']
 })
 export class BooksManagementComponent implements OnInit {
-    books: any[] = [];
-    filteredBooks: any[] = [];
-    authors: any[] = [];
-    loading = true;
-    saving = false;
-    uploading = false;
-    searchTerm = '';
+  @ViewChild('coverInput') coverInputRef!: ElementRef;
+  @ViewChild('bookFileInput') bookFileInputRef!: ElementRef;
 
-    showForm = false;
-    editingBook: any = null;
-    form: any = {};
-    coverFile: File | null = null;
-    coverPreview: string | null = null;
-    bookFile: File | null = null;
-    bookFileName = '';
+  books: any[] = [];
+  filteredBooks: any[] = [];
+  authors: any[] = [];
+  loading = true;
+  saving = false;
+  searchTerm = '';
 
-    constructor(private supabase: SupabaseService, private alert: AlertService) {}
+  showForm = false;
+  editingBook: any = null;
+  form: any = {};
+  coverFile: File | null = null;
+  coverPreview: string | null = null;
+  bookFile: File | null = null;
+  bookFileName = '';
 
-    ngOnInit() {
-        this.loadBooks();
-        this.loadAuthors();
+  constructor(
+    private supabase: SupabaseService,
+    private alert: AlertService,
+    private cdr: ChangeDetectorRef // 💡 تحديث الواجهة يدوياً
+  ) {}
+
+  ngOnInit() {
+    this.loadBooks();
+    this.loadAuthors();
+  }
+
+  async loadBooks() {
+    this.loading = true;
+    try {
+      const { data, error } = await this.supabase.client
+        .from('books')
+        .select('*, author:authors(id, name)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      this.books = data || [];
+      this.filterBooks();
+    } catch (e: any) {
+      this.alert.show('error', e.message || 'خطأ في تحميل الكتب');
+    } finally {
+      this.loading = false;
+      this.cdr.detectChanges();
     }
+  }
 
-    async loadBooks() {
-        this.loading = true;
-        try {
-            const { data, error } = await this.supabase.client
-                .from('books')
-                .select('*, author:authors(id, name)')
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            this.books = data || [];
-            this.filterBooks();
-        } catch (e: any) {
-            this.alert.show('error', e.message || 'خطأ في تحميل الكتب');
-        } finally { this.loading = false; }
+  async loadAuthors() {
+    const { data } = await this.supabase.client.from('authors').select('id, name').order('name');
+    this.authors = data || [];
+    this.cdr.detectChanges();
+  }
+
+  filterBooks() {
+    if (!this.searchTerm) { this.filteredBooks = this.books; return; }
+    const q = this.searchTerm.toLowerCase();
+    this.filteredBooks = this.books.filter(b =>
+      b.title?.toLowerCase().includes(q) || b.author?.name?.toLowerCase().includes(q)
+    );
+  }
+
+  resetForm() {
+ this.form = {
+      title: '', slug: '', description: '', price: 0, discount_price: null,
+      stock: 0, age_group: '', author_id: '', is_featured: false, is_active: true, cover_url: '',
+      isbn: '', publication_year: null // 💡 الحقول الجديدة
+    };
+    this.coverFile = null;
+    this.coverPreview = null;
+    this.bookFile = null;
+    this.bookFileName = '';
+
+    // 💡 تنظيف حقول إدخال الملفات لكي لا تعلق عند رفع ملف بنفس الاسم
+    if (this.coverInputRef) this.coverInputRef.nativeElement.value = '';
+    if (this.bookFileInputRef) this.bookFileInputRef.nativeElement.value = '';
+  }
+
+ openForm(book?: any) {
+    this.editingBook = book || null;
+    if (book) {
+      this.form = {
+        title: book.title, slug: book.slug, description: book.description || '',
+        price: book.price, discount_price: book.discount_price,
+        stock: book.stock, age_group: book.age_group || '',
+        author_id: book.author_id || '', is_featured: book.is_featured,
+        is_active: book.is_active, cover_url: book.cover_url || '',
+        isbn: book.isbn || '', // 💡 جلب الـ ISBN
+        publication_year: book.publication_year || null // 💡 جلب سنة النشر
+      };
+    } else {
+      this.resetForm();
     }
+    this.coverPreview = null;
+    this.coverFile = null;
+    this.showForm = true;
+    this.cdr.detectChanges();
+  }
 
-    async loadAuthors() {
-        const { data } = await this.supabase.client.from('authors').select('id, name').order('name');
-        this.authors = data || [];
+  closeForm() {
+    this.showForm = false;
+    this.editingBook = null;
+    this.resetForm();
+    this.cdr.detectChanges();
+  }
+
+  onCoverSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    this.coverFile = file;
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.coverPreview = e.target.result;
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  onBookFileSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    this.bookFile = file;
+    this.bookFileName = file.name;
+    this.cdr.detectChanges();
+  }
+
+  generateSlug(title: string): string {
+    return title.trim().toLowerCase()
+      .replace(/[\s]+/g, '-').replace(/[^\u0600-\u06FFa-z0-9\-]/g, '')
+      .substring(0, 60) || 'book-' + Date.now();
+  }
+
+  async saveBook() {
+    if (!this.form.title || this.form.price === undefined) return;
+
+    this.saving = true;
+    this.cdr.detectChanges();
+
+    try {
+      let coverUrl = this.form.cover_url;
+
+      // Upload cover
+      if (this.coverFile) {
+        const ext = this.coverFile.name.split('.').pop();
+        const path = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        const { url, error: uploadErr } = await this.supabase.uploadFile('book-covers', path, this.coverFile);
+        if (uploadErr) throw new Error('فشل رفع الغلاف');
+        coverUrl = url;
+      }
+
+      // Upload book PDF
+      let previewPages = this.editingBook?.preview_pages || null;
+      if (this.bookFile) {
+        const ext = this.bookFile.name.split('.').pop();
+        const path = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        const { url, error: uploadErr } = await this.supabase.uploadFile('book-previews', path, this.bookFile);
+        if (uploadErr) throw new Error('فشل رفع الملف');
+        previewPages = [url];
+      }
+
+      const slug = this.form.slug || this.generateSlug(this.form.title);
+
+      const bookData: any = {
+        title: this.form.title,
+        slug,
+        description: this.form.description || null,
+        price: Number(this.form.price),
+        discount_price: this.form.discount_price ? Number(this.form.discount_price) : null,
+        stock: Number(this.form.stock) || 0,
+        age_group: this.form.age_group || null,
+        author_id: this.form.author_id || null,
+        is_featured: this.form.is_featured || false,
+        is_active: this.form.is_active !== false,
+        cover_url: coverUrl || null,
+        preview_pages: previewPages,
+        isbn: this.form.isbn || null, // 💡 حفظ الـ ISBN
+        publication_year: this.form.publication_year ? Number(this.form.publication_year) : null // 💡 حفظ السنة كرقم
+      };
+
+      if (this.editingBook) {
+        const { error } = await this.supabase.client.from('books').update(bookData).eq('id', this.editingBook.id);
+        if (error) throw error;
+        this.alert.show('success', 'تم تحديث الكتاب بنجاح');
+      } else {
+        const { error } = await this.supabase.client.from('books').insert(bookData);
+        if (error) throw error;
+        this.alert.show('success', 'تم إضافة الكتاب بنجاح');
+      }
+
+      this.closeForm();
+      await this.loadBooks();
+
+    } catch (e: any) {
+      this.alert.show('error', e.message || 'حدث خطأ أثناء الحفظ');
+    } finally {
+      this.saving = false;
+      this.cdr.detectChanges(); // 💡 إجبار Angular على إخفاء اللودر فوراً وتحديث النافذة!
     }
+  }
 
-    filterBooks() {
-        if (!this.searchTerm) { this.filteredBooks = this.books; return; }
-        const q = this.searchTerm.toLowerCase();
-        this.filteredBooks = this.books.filter(b =>
-            b.title?.toLowerCase().includes(q) || b.author?.name?.toLowerCase().includes(q)
-        );
+  async deleteBook(book: any) {
+    if (!confirm(`هل أنت متأكد من حذف "${book.title}"؟`)) return;
+    this.loading = true;
+    try {
+      const { error } = await this.supabase.client.from('books').delete().eq('id', book.id);
+      if (error) throw error;
+      this.alert.show('success', 'تم حذف الكتاب');
+      this.books = this.books.filter(b => b.id !== book.id);
+      this.filterBooks();
+    } catch (e: any) {
+      this.alert.show('error', e.message || 'خطأ في الحذف');
+    } finally {
+      this.loading = false;
+      this.cdr.detectChanges();
     }
+  }
 
-    resetForm() {
-        this.form = {
-            title: '', slug: '', description: '', price: 0, discount_price: null,
-            stock: 0, age_group: '', author_id: '', is_featured: false, is_active: true, cover_url: ''
-        };
-        this.coverFile = null;
-        this.coverPreview = null;
-        this.bookFile = null;
-        this.bookFileName = '';
-    }
+  async toggleFeatured(book: any) {
+    const newVal = !book.is_featured;
+    const { error } = await this.supabase.client.from('books').update({ is_featured: newVal }).eq('id', book.id);
+    if (!error) { book.is_featured = newVal; this.cdr.detectChanges(); }
+  }
 
-    openForm(book?: any) {
-        this.editingBook = book || null;
-        if (book) {
-            this.form = {
-                title: book.title, slug: book.slug, description: book.description || '',
-                price: book.price, discount_price: book.discount_price,
-                stock: book.stock, age_group: book.age_group || '',
-                author_id: book.author_id || '', is_featured: book.is_featured,
-                is_active: book.is_active, cover_url: book.cover_url || ''
-            };
-        } else {
-            this.resetForm();
-        }
-        this.coverPreview = null;
-        this.coverFile = null;
-        this.showForm = true;
-    }
-
-    closeForm() { this.showForm = false; this.editingBook = null; }
-
-    onCoverSelected(event: any) {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        this.coverFile = file;
-        const reader = new FileReader();
-        reader.onload = (e: any) => this.coverPreview = e.target.result;
-        reader.readAsDataURL(file);
-    }
-
-    onBookFileSelected(event: any) {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        this.bookFile = file;
-        this.bookFileName = file.name;
-    }
-
-    generateSlug(title: string): string {
-        return title.trim().toLowerCase()
-            .replace(/[\s]+/g, '-').replace(/[^\u0600-\u06FFa-z0-9\-]/g, '')
-            .substring(0, 60) || 'book-' + Date.now();
-    }
-
-    async saveBook() {
-        if (!this.form.title || this.form.price === undefined) return;
-        this.saving = true;
-
-        try {
-            let coverUrl = this.form.cover_url;
-
-            // Upload cover if new file selected
-            if (this.coverFile) {
-                this.uploading = true;
-                const ext = this.coverFile.name.split('.').pop();
-                const path = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-                const { url, error: uploadErr } = await this.supabase.uploadFile('book-covers', path, this.coverFile);
-                if (uploadErr) throw new Error('فشل رفع الغلاف: ' + (uploadErr.message || uploadErr));
-                coverUrl = url;
-                this.uploading = false;
-            }
-
-            // Upload book PDF if selected
-            let previewPages = this.editingBook?.preview_pages || null;
-            if (this.bookFile) {
-                const ext = this.bookFile.name.split('.').pop();
-                const path = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-                const { url, error: uploadErr } = await this.supabase.uploadFile('book-previews', path, this.bookFile);
-                if (uploadErr) throw new Error('فشل رفع الملف');
-                previewPages = [url];
-            }
-
-            const slug = this.form.slug || this.generateSlug(this.form.title);
-
-            const bookData: any = {
-                title: this.form.title,
-                slug,
-                description: this.form.description || null,
-                price: Number(this.form.price),
-                discount_price: this.form.discount_price ? Number(this.form.discount_price) : null,
-                stock: Number(this.form.stock) || 0,
-                age_group: this.form.age_group || null,
-                author_id: this.form.author_id || null,
-                is_featured: this.form.is_featured || false,
-                is_active: this.form.is_active !== false,
-                cover_url: coverUrl || null,
-                preview_pages: previewPages,
-            };
-
-            if (this.editingBook) {
-                const { error } = await this.supabase.client
-                    .from('books').update(bookData).eq('id', this.editingBook.id);
-                if (error) throw error;
-                this.alert.show('success', 'تم تحديث الكتاب بنجاح');
-            } else {
-                const { error } = await this.supabase.client
-                    .from('books').insert(bookData);
-                if (error) throw error;
-                this.alert.show('success', 'تم إضافة الكتاب بنجاح');
-            }
-
-            this.closeForm();
-            this.loadBooks();
-        } catch (e: any) {
-            this.alert.show('error', e.message || 'حدث خطأ أثناء الحفظ');
-        } finally { this.saving = false; this.uploading = false; }
-    }
-
-    async deleteBook(book: any) {
-        if (!confirm(`هل أنت متأكد من حذف "${book.title}"؟`)) return;
-        this.loading = true;
-        try {
-            const { error } = await this.supabase.client.from('books').delete().eq('id', book.id);
-            if (error) throw error;
-            this.alert.show('success', 'تم حذف الكتاب');
-            this.books = this.books.filter(b => b.id !== book.id);
-            this.filterBooks();
-        } catch (e: any) {
-            this.alert.show('error', e.message || 'خطأ في الحذف');
-        } finally { this.loading = false; }
-    }
-
-    async toggleFeatured(book: any) {
-        const newVal = !book.is_featured;
-        const { error } = await this.supabase.client.from('books').update({ is_featured: newVal }).eq('id', book.id);
-        if (!error) book.is_featured = newVal;
-    }
-
-    async toggleActive(book: any) {
-        const newVal = !book.is_active;
-        const { error } = await this.supabase.client.from('books').update({ is_active: newVal }).eq('id', book.id);
-        if (!error) book.is_active = newVal;
-    }
+  async toggleActive(book: any) {
+    const newVal = !book.is_active;
+    const { error } = await this.supabase.client.from('books').update({ is_active: newVal }).eq('id', book.id);
+    if (!error) { book.is_active = newVal; this.cdr.detectChanges(); }
+  }
 }

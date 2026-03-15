@@ -7,6 +7,8 @@ export interface Book {
     discount_price?: number | null;
     cover_url?: string;
     cover_image?: string;
+    isbn?: string;
+  publication_year?: number;
     preview_pages?: string[];
     age_group?: string;
     category?: string;

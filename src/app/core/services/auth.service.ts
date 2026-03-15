@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { BehaviorSubject } from 'rxjs';
 import { User, Session } from '@supabase/supabase-js';
@@ -15,30 +15,47 @@ export class AuthService {
     public profile$ = this.profileSubject.asObservable();
     public ready$ = this.readySubject.asObservable();
 
-    constructor(private supabaseService: SupabaseService, private router: Router) {
+    constructor(
+        private supabaseService: SupabaseService,
+        private router: Router,
+        private ngZone: NgZone // 💡 تم حقن NgZone هنا لحل مشكلة التعليق
+    ) {
         this.initAuth();
     }
 
-    private async initAuth() {
-        try {
-            const { data: { session } } = await this.supabaseService.client.auth.getSession();
-            if (session?.user) {
-                this.currentUserSubject.next(session.user);
-                await this.loadProfile(session.user.id);
-            }
-        } catch (err) {
-            console.error('Auth init error:', err);
-        } finally {
-            this.readySubject.next(true);
-        }
+    private initAuth() {
+        // 💡 تشغيل التحقق من الجلسة "خارج" Angular لمنع Zone.js من تجميد المتصفح
+        this.ngZone.runOutsideAngular(() => {
 
-        this.supabaseService.client.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
-            this.currentUserSubject.next(session?.user ?? null);
-            if (session?.user) {
-                await this.loadProfile(session.user.id);
-            } else {
-                this.profileSubject.next(null);
-            }
+            // 1. جلب الجلسة الحالية
+            this.supabaseService.client.auth.getSession().then(({ data: { session }, error }) => {
+                this.ngZone.run(async () => {
+                    if (error) console.error('Session Error:', error);
+
+                    if (session?.user) {
+                        this.currentUserSubject.next(session.user);
+                        await this.loadProfile(session.user.id);
+                    }
+                    this.readySubject.next(true);
+                });
+            }).catch(err => {
+                this.ngZone.run(() => {
+                    console.error('Auth init error:', err);
+                    this.readySubject.next(true);
+                });
+            });
+
+            // 2. مراقبة تغييرات حالة الدخول (أيضاً خارج Angular)
+            this.supabaseService.client.auth.onAuthStateChange((_event: string, session: Session | null) => {
+                this.ngZone.run(async () => {
+                    this.currentUserSubject.next(session?.user ?? null);
+                    if (session?.user) {
+                        await this.loadProfile(session.user.id);
+                    } else {
+                        this.profileSubject.next(null);
+                    }
+                });
+            });
         });
     }
 
@@ -71,23 +88,30 @@ export class AuthService {
     }
 
     async signIn(email: string, password: string) {
-        const result = await this.supabaseService.client.auth.signInWithPassword({ email, password });
-        if (result.data?.user) {
-            await this.loadProfile(result.data.user.id);
-        }
-        return result;
+        // تشغيل تسجيل الدخول خارج Angular أيضاً
+        return this.ngZone.runOutsideAngular(async () => {
+            const result = await this.supabaseService.client.auth.signInWithPassword({ email, password });
+            this.ngZone.run(async () => {
+                if (result.data?.user) {
+                    await this.loadProfile(result.data.user.id);
+                }
+            });
+            return result;
+        });
     }
 
     async signUp(email: string, password: string, fullName: string) {
-        return this.supabaseService.client.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: fullName } }
+        return this.ngZone.runOutsideAngular(() => {
+            return this.supabaseService.client.auth.signUp({
+                email,
+                password,
+                options: { data: { full_name: fullName } }
+            });
         });
     }
 
     async signOut() {
-        await this.supabaseService.client.auth.signOut();
+        await this.ngZone.runOutsideAngular(() => this.supabaseService.client.auth.signOut());
         this.profileSubject.next(null);
         this.router.navigate(['/']);
     }
